@@ -1,0 +1,66 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Employee {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String?  @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  attendanceRecords AttendanceRecord[]
+  monthlySummaries  MonthlySummary[]
+}
+
+model AttendanceRecord {
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId    String   @db.ObjectId
+  employee      Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date          DateTime
+  inTime        String?
+  outTime       String?
+  workedHours   Float    @default(0)
+  expectedHours Float
+  status        String   // 'Present' | 'Leave' | 'Half-Day' | 'Weekend'
+  productivity  Float    @default(0)
+  month         String   // Format: "YYYY-MM"
+  year          Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([employeeId, date])
+  @@index([employeeId, month, year])
+  @@map("attendance_records")
+}
+
+model MonthlySummary {
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  employeeId        String   @db.ObjectId
+  employee          Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  month             String   // Format: "YYYY-MM"
+  year              Int
+  totalExpectedHours Float
+  totalActualHours  Float
+  leavesUsed        Int      @default(0)
+  leaveLimit        Int      @default(2)
+  productivityScore Float
+  presentDays       Int      @default(0)
+  leaveDays         Int      @default(0)
+  weekendDays       Int      @default(0)
+  halfDays          Int      @default(0)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@unique([employeeId, month, year])
+  @@index([employeeId])
+  @@map("monthly_summaries")
+}
+
